@@ -102,14 +102,26 @@ def call_back_func(callback):
         soup = s.get_padge()
         text = s.get_schedule(soup)
         bot.send_message(callback.from_user.id, f"Вот расписание фитнесхауса: {text}")
-try:
-    def add_post_title(message, subject):
-        title = message.text
-        bot.send_message(message.chat.id, 'Теперь прекрепите фото или отправьте что-нибудь')
-        bot.register_next_step_handler(message, add_post_photo, subject, title)
-except Exception as e:
-    print(e)
 
+
+def cancel_command(func):
+    #Декоратор
+    def addendum(message, *args, **kwargs):
+        if message.text == 'Отмена':
+            bot.send_message(message.chat.id, 'Омена задачи')
+        else:
+            return func(message, *args, **kwargs)
+    return addendum
+
+@cancel_command
+def add_post_title(message, subject):
+    title = message.text
+    bot.send_message(message.chat.id, 'Теперь прекрепите фото или отправьте что-нибудь')
+    bot.register_next_step_handler(message, add_post_photo, subject, title)
+
+
+        
+@cancel_command
 def add_post_photo(message, subject, title):
     try:
         photo_id = message.photo[-1].file_id
@@ -123,24 +135,29 @@ def add_post_photo(message, subject, title):
         photo_name = None
         bot.send_message(message.chat.id, 'Изображение не добавлено. \n Теперь введите текст записи.')
     bot.register_next_step_handler(message, add_post, subject, title, photo_name)
-    
+
+@cancel_command
 def add_post(message, subject, title, photo):
     text = message.text
     database = Knowledge_Basket()
     database.add_post(title, subject, text, photo)
     bot.send_message(message.chat.id, 'Запись добавлена')
 
-
+@cancel_command
 def add_subject_title(message):
     subject_title = message.text
     bot.send_message(message.chat.id, 'Введите описание темы')
     bot.register_next_step_handler(message, add_subject_description, subject_title = subject_title)
 
-
+@cancel_command
 def add_subject_description(message, subject_title):
     subject_description = message.text
     database = Knowledge_Basket()
     database.add_subject(subject_title,subject_description)
     bot.send_message(message.chat.id, 'Запись добавленна')
+
+
+
+
         
 bot.polling(none_stop=True)
