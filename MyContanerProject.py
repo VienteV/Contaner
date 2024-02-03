@@ -11,7 +11,25 @@ config = configparser.ConfigParser()
 config.read('settings.ini')
 
 bot = telebot.TeleBot(config['telebot']['Token'])
+def show_post_by_subject(for_what):
+    database = Knowledge_Basket()
+    callback_data = "show_post_by_subject" if for_what == "for_show" else "dell_post_by_subject"
+    subjects_titles = database.show_subjects_titles()
+    markup = types.InlineKeyboardMarkup()
+    subjects_titles = [InlineKeyboardButton(text=i, callback_data = f'{callback_data}: {i}') for i in subjects_titles]
+    for titles in subjects_titles:
+        markup.add(titles)
+    return markup
 
+def show_or_dell_post_by_subject(subject_title, for_what):
+    callback_data = "show_post" if for_what == "for_show" else "dell_post"
+    database = Knowledge_Basket()
+    posts_name = database.show_post_by_subject(subject_title.strip())
+    posts_name_markup = [InlineKeyboardButton(text=i, callback_data = f'{callback_data}: {i}') for i in posts_name]
+    markup = types.InlineKeyboardMarkup()
+    for name in posts_name_markup:
+        markup.add(name)
+    return markup
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -21,6 +39,7 @@ def send_welcome(message):
     markup.add(InlineKeyboardButton(text='Посмотреть посты по темам', callback_data='show_post_by_subject'))
     markup.add(InlineKeyboardButton(text='Добавить пост', callback_data='add_post'))
     markup.add(InlineKeyboardButton(text='Посмотреть расписание фитнесс хауса на сегодня', callback_data='chek_schedule'))
+    markup.add(InlineKeyboardButton(text='Удалить пост пост', callback_data='dell_post'))
     markup2 = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup2.add(types.KeyboardButton("/start"))
     bot.send_message(message.chat.id, "Привет, что будем делать?", reply_markup= markup2)
@@ -77,23 +96,15 @@ def call_back_func(callback):
                 
 
     elif callback.data == 'show_post_by_subject':
-        database = Knowledge_Basket()
-        subjects_titles = database.show_subjects_titles()
-        markup = types.InlineKeyboardMarkup()
-        subjects_titles = [InlineKeyboardButton(text=i, callback_data = f'show_post_by_subject: {i}') for i in subjects_titles]
-        for titles in subjects_titles:
-            markup.add(titles)
+        #выбираем предмет по которому будем смотреть посты пост
+        markup = show_post_by_subject('for_show')
         bot.send_message(callback.from_user.id, "Выберете область по которой хотите увидеть посты",
                          reply_markup = markup)
         
     elif callback.data.split(':')[0] == 'show_post_by_subject':
+        #показывает посты по определенному предмету
         subject_title = callback.data.split(':')[1]
-        database = Knowledge_Basket()
-        posts_name = database.show_post_by_subject(subject_title.strip())
-        posts_name_markup = [InlineKeyboardButton(text=i, callback_data = f'show_post: {i}') for i in posts_name]
-        markup = types.InlineKeyboardMarkup()
-        for name in posts_name_markup:
-            markup.add(name)
+        markup = show_or_dell_post_by_subject(subject_title, 'for_show')
         bot.send_message(callback.from_user.id, "Вот посты", reply_markup = markup)
 
     elif callback.data == 'chek_schedule':
@@ -102,6 +113,25 @@ def call_back_func(callback):
         soup = s.get_padge()
         text = s.get_schedule(soup)
         bot.send_message(callback.from_user.id, f"Вот расписание фитнесхауса: {text}")
+
+    elif callback.data == 'dell_post':
+        #выбираем предмет по которому будем удалять посты
+        markup = show_post_by_subject('for_dell')
+        bot.send_message(callback.from_user.id, "Выберете область по которой хотите удалить посты",
+                         reply_markup = markup)
+
+    elif callback.data.split(':')[0] == 'dell_post_by_subject':
+        subject_title = callback.data.split(':')[1].strip()
+        subject_title = callback.data.split(':')[1]
+        markup = show_or_dell_post_by_subject(subject_title, 'for_dell')
+        bot.send_message(callback.from_user.id, "Вот посты", reply_markup = markup)
+        
+    elif callback.data.split(':')[0] == 'dell_post':
+        post_title = callback.data.split(':')[1].strip()
+        database = Knowledge_Basket()
+        print(post_title)
+        database.dell_post(post_title)
+        bot.send_message(callback.from_user.id, 'Пост был удален')
 
 
 def cancel_command(func):

@@ -25,7 +25,7 @@ class Knowledge_Basket():
         self.cur.execute(f'''SELECT Posts.title
          FROM Posts INNER JOIN subject USING(subject_id)
          WHERE subject.title = '{subject_title}'
-         ORDER BY Posts.title''')
+         ORDER BY Posts.date_post''')
         posts = [i[0] for i in self.cur.fetchall()]
         print(posts)
         return posts
@@ -67,12 +67,14 @@ class Knowledge_Basket():
 
     def add_post(self, title, subject_title, text, url):
         subject_id = self.find_subject_id(subject_title)
-        print(date.today())
         today_date = date.today()
-        print(date)
         if bool(subject_id) == False:
             self.add_subject(subject_title)
         self.cur.execute('''INSERT INTO Posts ('post_id', 'title',
 'date_post','subject_id','post_text','image')
 VALUES (?, ?, ?, ?, ?, ?);''', (None, title, today_date, subject_id, text, url))
         self.conn.commit()
+
+    def dell_post(self, title):
+        self.cur.execute(f'''DELETE FROM Posts
+WHERE title = "{title}"''') 
